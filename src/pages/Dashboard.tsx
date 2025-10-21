@@ -16,8 +16,12 @@ import { useQuery } from "@tanstack/react-query";
 interface Transaction {
   id: string;
   created_at: string;
-  amount: number;
-  status: string;
+  final_amount: number;
+  total_amount: number;
+  tax_amount: number;
+  transaction_number: string;
+  rider_id: string;
+  payment_method: string;
 }
 
 interface ChartData {
@@ -59,8 +63,7 @@ export default function Dashboard() {
         .from('transactions')
         .select('*')
         .gte('created_at', startOfDay(date.from).toISOString())
-        .lte('created_at', endOfDay(date.to).toISOString())
-        .eq('status', 'completed');
+        .lte('created_at', endOfDay(date.to).toISOString());
 
       if (error) {
         console.error('Error fetching transactions:', error);
@@ -68,7 +71,7 @@ export default function Dashboard() {
       }
 
       // Group transactions by date
-      const groupedData = (data as Transaction[]).reduce((acc, transaction) => {
+      const groupedData = data.reduce((acc, transaction) => {
         const dateKey = format(new Date(transaction.created_at), 'yyyy-MM-dd');
         if (!acc[dateKey]) {
           acc[dateKey] = {
@@ -77,7 +80,7 @@ export default function Dashboard() {
           };
         }
         acc[dateKey].transactions += 1;
-        acc[dateKey].total_amount += transaction.amount;
+        acc[dateKey].total_amount += transaction.final_amount;
         return acc;
       }, {} as Record<string, Omit<ChartData, 'date'>>);
 
