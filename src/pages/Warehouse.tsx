@@ -7,10 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Warehouse, Plus, Pencil } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Warehouse, Plus, Pencil, TruckIcon, PackageMinus, CheckCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 export default function WarehousePage() {
   const [open, setOpen] = useState(false);
@@ -36,6 +39,47 @@ export default function WarehousePage() {
       if (error) throw error;
       return data;
     }
+  });
+
+  const { data: distributions } = useQuery({
+    queryKey: ['distributions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('distributions')
+        .select('*, products(name, sku), profiles!distributions_rider_id_fkey(full_name)')
+        .order('distributed_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: pendingReturns, isLoading: returnsLoading } = useQuery({
+    queryKey: ['pending_returns'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('returns')
+        .select('*, products(name, sku), profiles!returns_rider_id_fkey(full_name)')
+        .eq('status', 'pending')
+        .order('returned_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const approveReturnMutation = useMutation({
+    mutationFn: async (returnId: string) => {
+      const { error } = await supabase
+        .from('returns')
+        .update({ status: 'approved' })
+        .eq('id', returnId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending_returns'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse_stock'] });
+      toast.success("Return disetujui, stok telah dikembalikan ke gudang");
+    },
+    onError: () => toast.error("Gagal menyetujui return")
   });
 
   const upsertMutation = useMutation({
@@ -119,54 +163,167 @@ export default function WarehousePage() {
           </Dialog>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Warehouse className="h-5 w-5" />
+        <Tabs defaultValue="stock" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="stock">
+              <Warehouse className="h-4 w-4 mr-2" />
               Stok Gudang
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <p>Loading...</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Nama Produk</TableHead>
-                    <TableHead>Stok Tersedia</TableHead>
-                    <TableHead>Stok Minimum</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {warehouseStock?.map((stock) => (
-                    <TableRow key={stock.id}>
-                      <TableCell className="font-mono">{stock.products?.sku}</TableCell>
-                      <TableCell>{stock.products?.name}</TableCell>
-                      <TableCell>{stock.quantity}</TableCell>
-                      <TableCell>{stock.min_stock}</TableCell>
-                      <TableCell>
-                        {stock.quantity <= stock.min_stock ? (
-                          <span className="text-destructive font-medium">Stok Rendah</span>
-                        ) : (
-                          <span className="text-primary">Normal</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button size="sm" variant="outline" onClick={() => { setEditingStock(stock); setOpen(true); }}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+            </TabsTrigger>
+            <TabsTrigger value="distributions">
+              <TruckIcon className="h-4 w-4 mr-2" />
+              Distribusi
+            </TabsTrigger>
+            <TabsTrigger value="returns">
+              <PackageMinus className="h-4 w-4 mr-2" />
+              Return Produk
+              {pendingReturns && pendingReturns.length > 0 && (
+                <Badge variant="destructive" className="ml-2">{pendingReturns.length}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="stock">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Warehouse className="h-5 w-5" />
+                  Stok Gudang
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <p>Loading...</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>SKU</TableHead>
+                        <TableHead>Nama Produk</TableHead>
+                        <TableHead>Stok Tersedia</TableHead>
+                        <TableHead>Stok Minimum</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {warehouseStock?.map((stock) => (
+                        <TableRow key={stock.id}>
+                          <TableCell className="font-mono">{stock.products?.sku}</TableCell>
+                          <TableCell>{stock.products?.name}</TableCell>
+                          <TableCell>{stock.quantity}</TableCell>
+                          <TableCell>{stock.min_stock}</TableCell>
+                          <TableCell>
+                            {stock.quantity <= stock.min_stock ? (
+                              <span className="text-destructive font-medium">Stok Rendah</span>
+                            ) : (
+                              <span className="text-primary">Normal</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Button size="sm" variant="outline" onClick={() => { setEditingStock(stock); setOpen(true); }}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="distributions">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TruckIcon className="h-5 w-5" />
+                  Riwayat Distribusi
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>SKU</TableHead>
+                      <TableHead>Produk</TableHead>
+                      <TableHead>Rider</TableHead>
+                      <TableHead>Jumlah</TableHead>
+                      <TableHead>Tanggal</TableHead>
+                      <TableHead>Catatan</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {distributions?.map((dist) => (
+                      <TableRow key={dist.id}>
+                        <TableCell className="font-mono">{dist.products?.sku}</TableCell>
+                        <TableCell>{dist.products?.name}</TableCell>
+                        <TableCell>{dist.profiles?.full_name}</TableCell>
+                        <TableCell>{dist.quantity}</TableCell>
+                        <TableCell>{format(new Date(dist.distributed_at), 'dd MMM yyyy HH:mm')}</TableCell>
+                        <TableCell>{dist.notes || '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="returns">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <PackageMinus className="h-5 w-5" />
+                  Return Produk Menunggu Persetujuan
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {returnsLoading ? (
+                  <p>Loading...</p>
+                ) : pendingReturns && pendingReturns.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>SKU</TableHead>
+                        <TableHead>Produk</TableHead>
+                        <TableHead>Rider</TableHead>
+                        <TableHead>Jumlah</TableHead>
+                        <TableHead>Alasan</TableHead>
+                        <TableHead>Tanggal</TableHead>
+                        <TableHead>Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingReturns.map((ret) => (
+                        <TableRow key={ret.id}>
+                          <TableCell className="font-mono">{ret.products?.sku}</TableCell>
+                          <TableCell>{ret.products?.name}</TableCell>
+                          <TableCell>{ret.profiles?.full_name}</TableCell>
+                          <TableCell>{ret.quantity}</TableCell>
+                          <TableCell>{ret.reason}</TableCell>
+                          <TableCell>{format(new Date(ret.returned_at), 'dd MMM yyyy HH:mm')}</TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              onClick={() => approveReturnMutation.mutate(ret.id)}
+                              disabled={approveReturnMutation.isPending}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Setujui
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <p className="text-muted-foreground text-center py-8">Tidak ada return produk yang menunggu persetujuan</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );

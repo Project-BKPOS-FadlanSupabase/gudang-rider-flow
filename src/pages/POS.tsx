@@ -191,11 +191,17 @@ export default function POS() {
                     <SelectValue placeholder="Pilih produk" />
                   </SelectTrigger>
                   <SelectContent>
-                    {riderInventory?.map((inv) => (
-                      <SelectItem key={inv.products?.id} value={inv.products?.id || ''}>
-                        {inv.products?.name} - Rp {Number(inv.products?.price).toLocaleString('id-ID')} (Stok: {inv.quantity})
+                    {riderInventory && riderInventory.length > 0 ? (
+                      riderInventory.map((inv) => (
+                        <SelectItem key={inv.products?.id} value={inv.products?.id || ''}>
+                          {inv.products?.name} - Rp {Number(inv.products?.price).toLocaleString('id-ID')} (Stok: {inv.quantity})
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-products" disabled>
+                        Tidak ada produk tersedia
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
               </div>

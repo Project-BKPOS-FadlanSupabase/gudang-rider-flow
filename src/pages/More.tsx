@@ -1,11 +1,25 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FolderTree, BarChart3 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { FolderTree, BarChart3, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/Layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { signOut } from "@/lib/auth";
+import { toast } from "sonner";
 
 export default function More() {
   const { isAdmin } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast.error("Gagal logout");
+    } else {
+      toast.success("Berhasil logout");
+      navigate("/auth");
+    }
+  };
 
   if (!isAdmin) {
     return null;
@@ -53,6 +67,22 @@ export default function More() {
             </Link>
           ))}
         </div>
+
+        <Card className="border-destructive/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3 text-destructive">
+              <LogOut className="h-5 w-5" />
+              Logout
+            </CardTitle>
+            <CardDescription>Keluar dari akun Anda</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="destructive" onClick={handleLogout} className="w-full">
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );
