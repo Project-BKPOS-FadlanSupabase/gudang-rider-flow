@@ -175,6 +175,7 @@ export type Database = {
           reason: string | null
           returned_at: string
           rider_id: string
+          status: string
         }
         Insert: {
           id?: string
@@ -183,6 +184,7 @@ export type Database = {
           reason?: string | null
           returned_at?: string
           rider_id: string
+          status?: string
         }
         Update: {
           id?: string
@@ -191,6 +193,7 @@ export type Database = {
           reason?: string | null
           returned_at?: string
           rider_id?: string
+          status?: string
         }
         Relationships: [
           {
