@@ -8,7 +8,9 @@ import {
   BarChart3,
   Settings,
   ShoppingCart,
-  PackageOpen
+  PackageOpen,
+  PackageMinus,
+  MoreHorizontal
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -20,14 +22,14 @@ export function BottomNavigation() {
     { title: "Products", url: "/products", icon: Package },
     { title: "Warehouse", url: "/warehouse", icon: Warehouse },
     { title: "Distribution", url: "/distribution", icon: TruckIcon },
-    { title: "More", url: "/settings", icon: Settings },
+    { title: "More", url: "/more", icon: MoreHorizontal },
   ];
 
   const riderNavItems = [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "POS", url: "/pos", icon: ShoppingCart },
-    { title: "My Inventory", url: "/my-inventory", icon: PackageOpen },
-    { title: "Settings", url: "/settings", icon: Settings },
+    { title: "Inventory", url: "/my-inventory", icon: PackageOpen },
+    { title: "Return", url: "/returns", icon: PackageMinus },
   ];
 
   const navItems = isAdmin ? adminNavItems : riderNavItems;

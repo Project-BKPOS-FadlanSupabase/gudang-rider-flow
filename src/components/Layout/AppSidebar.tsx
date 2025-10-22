@@ -7,7 +7,8 @@ import {
   Warehouse,
   TruckIcon,
   FolderTree,
-  ShoppingCart
+  ShoppingCart,
+  PackageMinus
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
@@ -43,6 +44,7 @@ const riderMenuItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "POS", url: "/pos", icon: ShoppingCart },
   { title: "Produk Saya", url: "/my-inventory", icon: Package },
+  { title: "Return Produk", url: "/returns", icon: PackageMinus },
   { title: "Pengaturan", url: "/settings", icon: Settings },
 ];
 

@@ -15,6 +15,8 @@ import Reports from "./pages/Reports";
 import SettingsPage from "./pages/Settings";
 import POS from "./pages/POS";
 import MyInventory from "./pages/MyInventory";
+import Returns from "./pages/Returns";
+import More from "./pages/More";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +40,8 @@ const App = () => (
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             <Route path="/pos" element={<ProtectedRoute><POS /></ProtectedRoute>} />
             <Route path="/my-inventory" element={<ProtectedRoute><MyInventory /></ProtectedRoute>} />
+            <Route path="/returns" element={<ProtectedRoute><Returns /></ProtectedRoute>} />
+            <Route path="/more" element={<ProtectedRoute requireAdmin><More /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
